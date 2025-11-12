@@ -16,11 +16,31 @@ if (process.env.NODE_ENV === 'production') {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Configuración de CORS para producción
+// 🔧 CONFIGURACIÓN CORS MEJORADA
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://joyeria-diana-laura.vercel.app',
+  'https://joyeria-diana-laura-frontend.vercel.app'
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  origin: function (origin, callback) {
+    // Permitir requests sin origin (como mobile apps o curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = `The CORS policy for this site does not allow access from the specified Origin: ${origin}`;
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
+// Manejar preflight requests
+app.options('*', cors());
 
 app.use(express.json());
 
@@ -35,7 +55,8 @@ app.get('/api/health', (req, res) => {
     message: '🚀 Backend Diana Laura - Login & Users API',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    version: '2.0.0'
+    version: '2.0.0',
+    allowedOrigins: allowedOrigins
   });
 });
 
@@ -60,6 +81,9 @@ app.get('/api/config-check', async (req, res) => {
       database: dbOk ? '✅ Conectado' : '❌ Error',
       firebase: firebaseOk ? '✅ Configurado' : '⚠️ No configurado',
       zerobounce: zerobounceOk ? '✅ Configurado' : '⚠️ No configurado'
+    },
+    cors: {
+      allowedOrigins: allowedOrigins
     },
     environment: process.env.NODE_ENV || 'development'
   });
@@ -86,6 +110,7 @@ app.use((error: any, req: any, res: any, next: any) => {
 app.listen(PORT, async () => {
   console.log(`🎯 Servidor ejecutándose en puerto ${PORT}`);
   console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔧 CORS configurado para:`, allowedOrigins);
   console.log(`📊 Endpoints disponibles:`);
   console.log(`   🔐 Auth: http://localhost:${PORT}/api/auth`);
   console.log(`   👥 Users: http://localhost:${PORT}/api/users`);
