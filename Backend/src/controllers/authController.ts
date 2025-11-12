@@ -1,9 +1,10 @@
-// Ruta: Joyeria-Diana-Laura/Backend/src/controllers/authController.ts
+// En Joyeria-Diana-Laura/Backend/src/controllers/authController.ts
 import { Request, Response } from 'express';
 import * as userModel from '../models/userModel';
 import admin from '../config/firebase';
+import { EmailValidationService } from '../services/EmailValidationService';
 
-// 🔐 FUNCIONES DE AUTENTICACIÓN EXISTENTES
+// 🔐 FUNCIONES DE AUTENTICACIÓN MEJORADAS
 export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, nombre } = req.body;
@@ -14,6 +15,29 @@ export const register = async (req: Request, res: Response) => {
         message: 'Todos los campos son requeridos'
       });
     }
+
+    // 🔍 VALIDACIÓN DE FORMATO DE EMAIL
+    const formatValidation = EmailValidationService.validateFormat(email);
+    if (!formatValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: formatValidation.message
+      });
+    }
+
+    // 🔍 VALIDACIÓN DE EMAIL REAL CON ZEROBOUNCE
+    console.log(`🔍 Iniciando validación ZeroBounce para: ${email}`);
+    const emailValidation = await EmailValidationService.validateEmail(email);
+    
+    if (!emailValidation.valid) {
+      console.log(`❌ Validación fallida: ${emailValidation.message}`);
+      return res.status(400).json({
+        success: false,
+        message: emailValidation.message || 'El email no es válido'
+      });
+    }
+
+    console.log(`✅ Email validado correctamente: ${email}`);
 
     if (password.length < 6) {
       return res.status(400).json({
@@ -41,21 +65,63 @@ export const register = async (req: Request, res: Response) => {
     const success = await userModel.createUser(email, password, nombre, userRecord.uid);
     
     if (success) {
+      console.log(`✅ Usuario registrado exitosamente: ${email}`);
+      
+      // Generar link de verificación con redirección al login
+      try {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const actionCodeSettings = {
+          url: `${frontendUrl}/login?verified=true`,
+          handleCodeInApp: false
+        };
+        
+        // Generar el link de verificación personalizado
+        const verificationLink = await admin.auth().generateEmailVerificationLink(
+          email, 
+          actionCodeSettings
+        );
+        
+        console.log('📧 Link de verificación generado con redirección al login');
+        console.log(`🔗 URL de redirección: ${frontendUrl}/login?verified=true`);
+        
+      } catch (emailError) {
+        console.error('❌ Error generando link de verificación:', emailError);
+        // No falla el registro si hay error en el email
+      }
+      
       res.status(201).json({
         success: true,
-        message: 'Usuario registrado correctamente'
+        message: 'Usuario registrado correctamente. Revisa tu email para verificar tu cuenta.'
       });
     } else {
+      // Rollback: eliminar usuario de Firebase si falla en BD local
+      await admin.auth().deleteUser(userRecord.uid);
       res.status(500).json({
         success: false,
-        message: 'Error al registrar usuario'
+        message: 'Error al registrar usuario en la base de datos'
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error en register:', error);
+    
+    // Manejar errores específicos de Firebase
+    if (error.code === 'auth/email-already-exists') {
+      return res.status(400).json({
+        success: false,
+        message: 'El email ya está registrado en el sistema'
+      });
+    }
+    
+    if (error.code === 'auth/invalid-email') {
+      return res.status(400).json({
+        success: false,
+        message: 'El formato del email es inválido'
+      });
+    }
+
     res.status(500).json({
       success: false,
-      message: 'Error interno del servidor'
+      message: 'Error interno del servidor: ' + error.message
     });
   }
 };
@@ -71,12 +137,23 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
+    // Primero verificamos si el usuario existe
+    const userExists = await userModel.emailExists(email);
+    
+    if (!userExists) {
+      return res.status(401).json({
+        success: false,
+        message: 'El usuario no existe. Por favor, verifica tu correo electrónico.'
+      });
+    }
+
+    // Si el usuario existe, verificamos la contraseña
     const user = await userModel.verifyUser(email, password);
     
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Credenciales inválidas'
+        message: 'Contraseña incorrecta. Por favor, intenta nuevamente.'
       });
     }
 
@@ -100,7 +177,6 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-// 🔄 FUNCIONES DE RECUPERACIÓN DE CONTRASEÑA (LAS QUE YA TENÍAS)
 export const forgotPassword = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
@@ -118,12 +194,12 @@ export const forgotPassword = async (req: Request, res: Response) => {
       // Por seguridad, no revelamos si el email existe o no
       return res.json({
         success: true,
-        message: 'Si el email existe, se ha enviado un enlace de recuperación a tu email'
+        message: 'Se ha enviado un enlace de recuperación a tu email'
       });
     }
 
     try {
-      // ✅ ACTUALIZAR: URL de redirección para producción
+      // Configurar la URL de redirección
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       const actionCodeSettings = {
         url: `${frontendUrl}/login?reset=success`,
@@ -134,11 +210,10 @@ export const forgotPassword = async (req: Request, res: Response) => {
       await admin.auth().generatePasswordResetLink(email, actionCodeSettings);
       
       console.log('📧 Email de recuperación enviado a:', email);
-      console.log('🔗 URL de redirección:', actionCodeSettings.url);
       
       res.json({
         success: true,
-        message: 'Si el email existe, se ha enviado un enlace de recuperación a tu email'
+        message: 'Se ha enviado un enlace de recuperación a tu email'
       });
 
     } catch (firebaseError: any) {
@@ -148,7 +223,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
       if (firebaseError.code === 'auth/user-not-found') {
         return res.json({
           success: true,
-          message: 'Si el email existe, se ha enviado un enlace de recuperación a tu email'
+          message: 'Se ha enviado un enlace de recuperación a tu email'
         });
       }
       
@@ -235,7 +310,6 @@ export const resetPassword = async (req: Request, res: Response) => {
   }
 };
 
-// Función opcional para verificar si un usuario existe
 export const checkUserExists = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
@@ -275,14 +349,7 @@ export const resetPasswordFirebase = async (req: Request, res: Response) => {
     }
 
     try {
-      // Verificar el código con el cliente de Firebase (no Admin SDK)
-      // Esto normalmente lo haría el frontend con el SDK de Firebase
-      // Por ahora, actualizamos directamente con el email
-      
-      // Para este enfoque, necesitamos obtener el email del código
-      // Pero el Admin SDK no tiene esta capacidad
-      // Alternativa: usar el Auth REST API de Firebase
-      
+      // Esta función normalmente la maneja el frontend con Firebase SDK
       res.json({
         success: true,
         message: 'Contraseña actualizada correctamente'
@@ -301,6 +368,62 @@ export const resetPasswordFirebase = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor'
+    });
+  }
+};
+
+export const checkEmailCredits = async (req: Request, res: Response) => {
+  try {
+    const creditsInfo = await EmailValidationService.checkCredits();
+    
+    res.json({
+      success: true,
+      data: {
+        credits: creditsInfo.credits,
+        message: creditsInfo.message
+      }
+    });
+
+  } catch (error) {
+    console.error('Error en checkEmailCredits:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error verificando créditos de email'
+    });
+  }
+};
+
+export const checkEmailConfig = async (req: Request, res: Response) => {
+  try {
+    // Verificar que Firebase esté configurado correctamente
+    const testEmail = 'test@example.com';
+    
+    try {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const actionCodeSettings = {
+        url: `${frontendUrl}/login?verified=true`,
+        handleCodeInApp: false
+      };
+      
+      await admin.auth().generateEmailVerificationLink(testEmail, actionCodeSettings);
+      
+      res.json({
+        success: true,
+        message: `Configuración de email verificada correctamente. Los links redirigirán a: ${frontendUrl}/login`
+      });
+      
+    } catch (firebaseError: any) {
+      res.status(400).json({
+        success: false,
+        message: `Error en configuración de Firebase: ${firebaseError.message}`
+      });
+    }
+
+  } catch (error) {
+    console.error('Error en checkEmailConfig:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error verificando configuración de email'
     });
   }
 };

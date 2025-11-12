@@ -2,7 +2,7 @@
 import { pool } from '../config/database';
 
 const diagnoseConnection = async () => {
-  console.log('🔍 Diagnosticando conexión a Railway...');
+  console.log('🔍 Diagnosticando conexión a PostgreSQL...');
   
   try {
     console.log('1. Probando conexión básica...');
@@ -44,7 +44,7 @@ const diagnoseConnection = async () => {
     console.error('❌ Error en diagnóstico:', error.message);
     console.log('💡 Posibles soluciones:');
     console.log('   - Verifica las credenciales en .env');
-    console.log('   - Verifica que la BD exista en Railway');
+    console.log('   - Verifica que la BD exista');
     console.log('   - Verifica el firewall/red');
   } finally {
     await pool.end();
