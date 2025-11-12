@@ -1,3 +1,5 @@
+// Ruta:Joyeria-Diana-Laura/Frontend/src/App.tsx
+
 import React from 'react';
 import './App.css';
 import AppRoutes from './navigation/AppRoutes';

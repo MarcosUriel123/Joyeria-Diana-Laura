@@ -1,3 +1,5 @@
+// Ruta:Joyeria-Diana-Laura/Frontend/src/contexts/AuthContext.tsx
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { authAPI } from '../services/api';
 

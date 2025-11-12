@@ -1,3 +1,5 @@
+// Ruta:Joyeria-Diana-Laura/Backend/src/server.ts
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';

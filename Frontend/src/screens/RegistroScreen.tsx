@@ -1,3 +1,4 @@
+// Ruta:Joyeria-Diana-Laura/Frontend/src/screens/RegistroScreen.tsx
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";

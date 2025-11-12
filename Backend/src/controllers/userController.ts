@@ -1,7 +1,8 @@
+// Ruta: Joyeria-Diana-Laura/Backend/src/controllers/userController.ts
 import { Request, Response } from 'express';
 import * as userModel from '../models/userModel';
 
-// Obtener perfil de usuario por ID (MySQL)
+// Obtener perfil de usuario por ID
 export const getUserProfile = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

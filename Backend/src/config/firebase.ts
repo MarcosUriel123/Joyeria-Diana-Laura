@@ -1,3 +1,5 @@
+// Ruta:Joyeria-Diana-Laura/Backend/src/config/firebase.ts
+
 import admin from 'firebase-admin';
 import dotenv from 'dotenv';
 

@@ -1,3 +1,5 @@
+// Ruta:Joyeria-Diana-Laura/Frontend/src/screens/InicioScreen.tsx
+
 import React from "react";
 import { useAuth } from "../contexts/AuthContext";
 import "../styles/InicioScreen.css";

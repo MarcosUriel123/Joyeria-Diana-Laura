@@ -1,3 +1,5 @@
+// Ruta:Joyeria-Diana-Laura/Backend/src/middleware/authMiddleware.ts
+
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 

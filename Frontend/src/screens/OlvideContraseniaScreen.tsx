@@ -1,3 +1,4 @@
+// Ruta: Joyeria-Diana-Laura/Frontend/src/screens/OlvideContraseniaScreen.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/OlvideContraseniaScreen.css';
@@ -7,14 +8,13 @@ const OlvideContraseniaScreen: React.FC = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resetToken, setResetToken] = useState(''); // ✅ Nuevo estado para el token
+
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setMessage('');
-    setResetToken(''); // ✅ Limpiar token anterior
     setLoading(true);
 
     try {
@@ -27,18 +27,7 @@ const OlvideContraseniaScreen: React.FC = () => {
       const data = await response.json();
 
       if (data.success) {
-        setMessage(data.message);
-        
-        // ✅ MOSTRAR TOKEN EN PANTALLA en desarrollo
-        if (data.debug) {
-          console.log('🔗 Enlace de recuperación:', data.debug.resetLink);
-          setResetToken(data.debug.resetToken); // ✅ Guardar token para mostrarlo
-          setMessage(`${data.message} \n\n🔗 Usa este enlace para continuar:`);
-        }
-        
-        // ❌ ELIMINAR la redirección automática
-        // El usuario debe hacer clic manualmente en el enlace
-        
+        setMessage('✅ Si el email existe, se ha enviado un enlace de recuperación. Revisa tu bandeja de entrada y spam.');
       } else {
         setError(data.message);
       }
@@ -47,12 +36,6 @@ const OlvideContraseniaScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // ✅ Función para copiar enlace al portapapeles
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    alert('Enlace copiado al portapapeles');
   };
 
   return (
@@ -79,30 +62,15 @@ const OlvideContraseniaScreen: React.FC = () => {
         
         {message && (
           <div className="success-message">
-            <div style={{ whiteSpace: 'pre-line', marginBottom: '1rem' }}>
-              {message}
+            <p>{message}</p>
+            <div className="email-tips">
+              <h4>💡 Consejos:</h4>
+              <ul>
+                <li>Revisa tu bandeja de entrada</li>
+                <li>Revisa la carpeta de spam o correo no deseado</li>
+                <li>El enlace expira en 1 hora</li>
+              </ul>
             </div>
-            
-            {/* ✅ MOSTRAR ENLACE EN PANTALLA */}
-            {resetToken && (
-              <div className="token-section">
-                <h4>🔗 Enlace de Recuperación (Desarrollo):</h4>
-                <div className="token-box">
-                  <code>
-                    http://localhost:3000/reset-password?token={resetToken}
-                  </code>
-                  <button 
-                    onClick={() => copyToClipboard(`http://localhost:3000/reset-password?token=${resetToken}`)}
-                    className="copy-button"
-                  >
-                    📋 Copiar
-                  </button>
-                </div>
-                <p style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
-                  <strong>Nota:</strong> Haz clic en el enlace o cópialo y ábrelo en una nueva pestaña
-                </p>
-              </div>
-            )}
           </div>
         )}
         

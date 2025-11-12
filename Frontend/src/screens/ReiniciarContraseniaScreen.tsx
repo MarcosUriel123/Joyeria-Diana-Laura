@@ -1,3 +1,4 @@
+// Ruta: Joyeria-Diana-Laura/Frontend/src/screens/ReiniciarContraseniaScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import '../styles/ReiniciarContraseniaScreen.css';
@@ -10,32 +11,31 @@ const ResetPasswordScreen: React.FC = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [tokenValid, setTokenValid] = useState<boolean>(true); // Inicializar como true
-
-  const token = searchParams.get('token');
+  const [mode, setMode] = useState<string | null>(null);
+  const [oobCode, setOobCode] = useState<string | null>(null);
 
   useEffect(() => {
-    if (token) {
-      verifyToken();
-    } else {
-      setTokenValid(false);
-    }
-  }, [token]);
+    const urlMode = searchParams.get('mode');
+    const urlOobCode = searchParams.get('oobCode');
+    
+    setMode(urlMode);
+    setOobCode(urlOobCode);
 
-  const verifyToken = async () => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/auth/verify-reset-token/${token}`);
-      const data = await response.json();
-      setTokenValid(data.success);
-    } catch (error) {
-      setTokenValid(false);
+    // Verificar que sea el modo correcto y tenga código
+    if (urlMode !== 'resetPassword' || !urlOobCode) {
+      setError('Enlace inválido o expirado');
     }
-  };
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setMessage('');
+
+    if (!oobCode) {
+      setError('Código de recuperación no válido');
+      return;
+    }
 
     if (newPassword !== confirmPassword) {
       setError('Las contraseñas no coinciden');
@@ -50,10 +50,15 @@ const ResetPasswordScreen: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/reset-password', {
+      // En este punto, Firebase ya ha verificado el código
+      // Solo necesitamos actualizar la contraseña en nuestro backend
+      const response = await fetch('http://localhost:5000/api/auth/reset-password-firebase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, newPassword })
+        body: JSON.stringify({ 
+          oobCode,
+          newPassword 
+        })
       });
 
       const data = await response.json();
@@ -71,16 +76,15 @@ const ResetPasswordScreen: React.FC = () => {
     }
   };
 
-  // Si no hay token o el token es inválido
-  if (!token || !tokenValid) {
+  if (error && !oobCode) {
     return (
       <div className="reset-password-container">
         <div className="reset-password-form">
           <div className="error-message">
-            ❌ {!token ? 'Token de recuperación no válido' : 'Token inválido o expirado'}
+            ❌ {error}
           </div>
           <button 
-            onClick={() => navigate('/forgot-password')} 
+            onClick={() => navigate('/olvide')} 
             className="back-button"
           >
             Solicitar nuevo enlace
@@ -100,6 +104,7 @@ const ResetPasswordScreen: React.FC = () => {
     <div className="reset-password-container">
       <div className="reset-password-form">
         <h2>Establecer Nueva Contraseña</h2>
+        <p>Crea una nueva contraseña para tu cuenta.</p>
         
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -130,14 +135,6 @@ const ResetPasswordScreen: React.FC = () => {
         
         {message && <div className="success-message">{message}</div>}
         {error && <div className="error-message">{error}</div>}
-        
-        <button 
-          onClick={() => navigate('/login')} 
-          className="back-button"
-          style={{ marginTop: '1rem' }}
-        >
-          ← Volver al Login
-        </button>
       </div>
     </div>
   );

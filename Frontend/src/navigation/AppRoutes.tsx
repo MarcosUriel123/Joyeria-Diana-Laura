@@ -1,3 +1,5 @@
+// Ruta:Joyeria-Diana-Laura/Frontend/src/navigation/AppRoutes.tsx
+
 // Este archivo es para manejar las rutas de la aplicación
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"; // para manejar las rutas
