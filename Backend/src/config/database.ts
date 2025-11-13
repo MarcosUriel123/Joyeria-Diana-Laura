@@ -4,16 +4,16 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Configuración mejorada para Railway/Render
+// Configuración mejorada para Railway
 const getDatabaseConfig = () => {
-  // Preferir DATABASE_URL si existe (Railway/Render la proporciona)
+  // Preferir DATABASE_URL si existe (Railway la proporciona)
   if (process.env.DATABASE_URL) {
     return {
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false },
       max: 10,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 15000,
+      connectionTimeoutMillis: 15000, // Aumentar timeout
     };
   }
 
@@ -24,7 +24,7 @@ const getDatabaseConfig = () => {
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: parseInt(process.env.DB_PORT || '5432'),
-    ssl: { rejectUnauthorized: false },
+    ssl: { rejectUnauthorized: false }, // SSL siempre para Railway
     max: 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 15000,
@@ -36,7 +36,7 @@ export const pool = new Pool(getDatabaseConfig());
 export const testConnection = async (): Promise<boolean> => {
   try {
     const client = await pool.connect();
-    console.log('✅ Conectado a PostgreSQL en Railway/Render');
+    console.log('✅ Conectado a PostgreSQL en Railway');
     
     // Verificar conexión básica
     const result = await client.query('SELECT NOW() as current_time');
@@ -57,13 +57,13 @@ export const testConnection = async (): Promise<boolean> => {
       const userCount = await client.query('SELECT COUNT(*) as count FROM usuarios');
       console.log('👥 Usuarios en la BD:', userCount.rows[0].count);
     } else {
-      console.log('⚠️  La tabla usuarios NO existe');
+      console.log('⚠️  La tabla usuarios NO existe en Railway');
     }
     
     client.release();
     return true;
   } catch (error: any) {
-    console.error('❌ Error conectando a PostgreSQL:', error.message);
+    console.error('❌ Error conectando a Railway PostgreSQL:', error.message);
     console.log('🔍 Detalles de conexión:');
     console.log('   Host:', process.env.DB_HOST);
     console.log('   Puerto:', process.env.DB_PORT);
