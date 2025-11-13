@@ -5,10 +5,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Verificar credenciales esenciales
 if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_PRIVATE_KEY || !process.env.FIREBASE_CLIENT_EMAIL) {
   console.error('❌ Faltan credenciales esenciales de Firebase');
-  // No lanzar error para permitir que el servidor inicie
 }
 
 const serviceAccount = {
@@ -24,18 +22,19 @@ const serviceAccount = {
   client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL
 };
 
-// Inicializar Firebase solo si tenemos las credenciales mínimas
 if (!admin.apps.length && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
   try {
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount)
+      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+      databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
     });
-    console.log('✅ Firebase Admin inicializado correctamente');
+    console.log('✅ Firebase Admin inicializado correctamente con Firestore');
   } catch (error) {
     console.error('❌ Error inicializando Firebase Admin:', error);
   }
-} else if (!admin.apps.length) {
-  console.log('⚠️ Firebase Admin no inicializado - faltan credenciales');
 }
 
+// Exportar Firestore
+export const db = admin.firestore();
+export const auth = admin.auth();
 export default admin;

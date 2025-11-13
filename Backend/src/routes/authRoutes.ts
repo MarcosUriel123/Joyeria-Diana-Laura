@@ -5,19 +5,32 @@ import {
     login, 
     forgotPassword, 
     resetPassword,
+    resetPasswordFirebase,
     checkUserExists,
     checkEmailCredits,
-    checkEmailConfig
+    checkEmailConfig,
+    checkEmailVerification,
+    resendVerificationEmail,
+    getUserProfile
 } from '../controllers/authController';
 
 const router = express.Router();
 
+// 🔐 Rutas de autenticación principales
 router.post('/register', register);
 router.post('/login', login);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
-router.post('/check-user', checkUserExists); 
+router.post('/reset-password-firebase', resetPasswordFirebase);
+
+// 🔍 Rutas de verificación y consulta
+router.post('/check-user', checkUserExists);
 router.get('/email-credits', checkEmailCredits);
 router.get('/email-config', checkEmailConfig);
+
+// 🆕 Nuevas rutas para Firestore y verificación de email
+router.get('/verify-email/:uid', checkEmailVerification);
+router.post('/resend-verification', resendVerificationEmail);
+router.get('/profile/:uid', getUserProfile);
 
 export default router;
