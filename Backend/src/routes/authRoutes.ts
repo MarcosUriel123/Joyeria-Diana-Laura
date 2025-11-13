@@ -1,4 +1,4 @@
-    // En Joyeria-Diana-Laura/Backend/src/routes/authRoutes.ts
+    // Ruta: Joyeria-Diana-Laura/Backend/src/routes/authRoutes.ts
     import express from 'express';
     import { 
         register, 
